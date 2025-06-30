@@ -7,7 +7,6 @@ import {
   GetOrdersByEventParams,
   GetOrdersByUserParams,
 } from "@/types";
-import { redirect } from "next/navigation";
 import { handleError } from "../utils";
 import { connectToDatabase } from "../database";
 import Order from "../database/models/order.model";
@@ -15,14 +14,15 @@ import Event from "../database/models/event.model";
 import { ObjectId } from "mongodb";
 import User from "../database/models/user.model";
 
-// ⬇️ CREATE Razorpay Order
+//  CREATE Razorpay Order
 export const checkoutOrder = async (order: CheckoutOrderParams) => {
   const razorpay = new Razorpay({
     key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY!,
     key_secret: process.env.RAZORPAY_KEY_SECRET!,
   });
 
-  const price = order.isFree ? 0 : Number(order.price) * 100;
+  const rawAmount = Number(order.price);
+  const price = order.isFree ? 100 : Math.max(100, Math.round(rawAmount * 100));
 
   try {
     const response = await razorpay.orders.create({
@@ -35,13 +35,13 @@ export const checkoutOrder = async (order: CheckoutOrderParams) => {
       },
     });
 
-    return response; // Contains { id, amount, currency, ... }
+    return response;
   } catch (error) {
     throw error;
   }
 };
 
-// ⬇️ CREATE Order in DB
+//  Create Order in DB
 export const createOrder = async (order: CreateOrderParams) => {
   try {
     await connectToDatabase();
@@ -58,14 +58,13 @@ export const createOrder = async (order: CreateOrderParams) => {
   }
 };
 
-// ⬇️ Get Orders by Event
+//  Get Orders by Event
 export async function getOrdersByEvent({
   searchString,
   eventId,
 }: GetOrdersByEventParams) {
   try {
     await connectToDatabase();
-
     if (!eventId) throw new Error("Event ID is required");
     const eventObjectId = new ObjectId(eventId);
 
@@ -116,7 +115,7 @@ export async function getOrdersByEvent({
   }
 }
 
-// ⬇️ Get Orders by User
+//  Get Orders by User
 export async function getOrdersByUser({
   userId,
   limit = 3,
@@ -124,12 +123,10 @@ export async function getOrdersByUser({
 }: GetOrdersByUserParams) {
   try {
     await connectToDatabase();
-
     const skipAmount = (Number(page) - 1) * limit;
     const conditions = { buyer: userId };
 
-    const orders = await Order.distinct("event._id")
-      .find(conditions)
+    const orders = await Order.find(conditions)
       .sort({ createdAt: "desc" })
       .skip(skipAmount)
       .limit(limit)
@@ -143,9 +140,7 @@ export async function getOrdersByUser({
         },
       });
 
-    const ordersCount = await Order.distinct("event._id").countDocuments(
-      conditions
-    );
+    const ordersCount = await Order.countDocuments(conditions);
 
     return {
       data: JSON.parse(JSON.stringify(orders)),

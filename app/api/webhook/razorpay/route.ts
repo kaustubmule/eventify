@@ -26,15 +26,24 @@ export async function POST(request: Request) {
     const { id, amount, notes } = payment;
 
     const order = {
-      stripeId: id,
+      razorpayPaymentId: id,
       eventId: notes?.eventId || "",
       buyerId: notes?.buyerId || "",
       totalAmount: amount ? (amount / 100).toString() : "0",
       createdAt: new Date(),
     };
-
-    const newOrder = await createOrder(order);
-    return NextResponse.json({ message: "OK", order: newOrder });
+    console.log("🪝 Webhook received:", JSON.stringify(event, null, 2));
+    console.log("✅ Creating order with data:", order);
+    try {
+      const newOrder = await createOrder(order);
+      return NextResponse.json({ message: "OK", order: newOrder });
+    } catch (err) {
+      console.error("❌ Failed to create order:", err);
+      return NextResponse.json(
+        { error: "Failed to create order" },
+        { status: 500 }
+      );
+    }
   }
 
   return new Response("", { status: 200 });
