@@ -37,40 +37,76 @@ const Checkout = ({ event, userId }: { event: IEvent; userId: string }) => {
       buyerId: userId,
     };
 
-    const res = await checkoutOrder(orderDetails);
+    try {
+      const res = await checkoutOrder(orderDetails);
 
-    const success = await loadRazorpayScript();
-    if (!success) {
-      alert("Razorpay SDK failed to load. Are you online?");
-      return;
+      const success = await loadRazorpayScript();
+      if (!success) {
+        alert("Razorpay SDK failed to load. Are you online?");
+        return;
+      }
+
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY,
+        amount: res.amount,
+        currency: "INR",
+        name: event.title,
+        description: "Event Ticket Purchase",
+        order_id: res.id,
+        handler: async function (response: any) {
+          console.log("Payment success:", response);
+          
+          // Call our API to confirm the order
+          try {
+            const orderData = {
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpayOrderId: response.razorpay_order_id,
+              razorpaySignature: response.razorpay_signature,
+              eventId: orderDetails.eventId,
+              buyerId: orderDetails.buyerId,
+              totalAmount: (parseInt(res.amount.toString()) / 100).toString(),
+            };
+
+            const orderResponse = await fetch('/api/orders/confirm', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(orderData),
+            });
+
+            if (!orderResponse.ok) {
+              throw new Error('Failed to confirm order');
+            }
+
+            const orderResult = await orderResponse.json();
+            console.log('Order confirmed:', orderResult);
+            window.location.href = `/profile?success=true&orderId=${orderResult.order._id}`;
+          } catch (error) {
+            console.error('Error confirming order:', error);
+            alert('Payment was successful but there was an error creating your order. Please contact support with your payment ID: ' + response.razorpay_payment_id);
+            window.location.href = '/profile';
+          }
+        },
+        prefill: {
+          name: "", // You might want to prefill with user's name
+          email: "", // and email
+        },
+        notes: {
+          eventId: event._id,
+          buyerId: userId,
+        },
+        theme: {
+          color: "#6366f1",
+        },
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.open();
+    } catch (error) {
+      console.error('Error during checkout:', error);
+      alert('There was an error processing your payment. Please try again.');
     }
-
-    const options = {
-      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY,
-      amount: res.amount,
-      currency: "INR",
-      name: event.title,
-      description: "Event Ticket Purchase",
-      order_id: res.id,
-      handler: function (response: any) {
-        console.log("Payment success:", response);
-        window.location.href = "/profile?success=true";
-      },
-      prefill: {
-        name: "", // Optional
-        email: "", // Optional
-      },
-      notes: {
-        eventId: event._id,
-        buyerId: userId,
-      },
-      theme: {
-        color: "#6366f1",
-      },
-    };
-
-    const rzp = new (window as any).Razorpay(options);
-    rzp.open();
   };
 
   return (
