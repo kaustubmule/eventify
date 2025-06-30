@@ -58,10 +58,14 @@ export const convertFileToUrl = (file: File) => URL.createObjectURL(file);
 
 export const formatPrice = (price: string) => {
   const amount = parseFloat(price);
-  const formattedPrice = new Intl.NumberFormat("en-US", {
+  const formattedPrice = new Intl.NumberFormat("en-IN", {
     style: "currency",
-    currency: "USD",
+    currency: "INR",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
   }).format(amount);
+  
+  return formattedPrice.replace('₹', '₹ '); // Add space after Rupee symbol for better readability
 
   return formattedPrice;
 };
