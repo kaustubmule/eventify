@@ -85,10 +85,32 @@ export async function POST(request: Request) {
           throw new Error("Payment ID is missing");
         }
 
+        // Validate required fields
+        if (!notes?.eventId || !notes?.buyerId) {
+          console.error('❌ Missing required fields in payment notes:', { notes });
+          return NextResponse.json(
+            { error: "Missing required fields in payment notes" },
+            { status: 400 }
+          );
+        }
+
+        // Validate ObjectId format
+        const isValidObjectId = (id: string) => /^[0-9a-fA-F]{24}$/.test(id);
+        if (!isValidObjectId(notes.buyerId) || !isValidObjectId(notes.eventId)) {
+          console.error('❌ Invalid ObjectId format:', { 
+            buyerId: notes.buyerId, 
+            eventId: notes.eventId 
+          });
+          return NextResponse.json(
+            { error: "Invalid ID format" },
+            { status: 400 }
+          );
+        }
+
         const orderData = {
           razorpayPaymentId: id,
-          eventId: notes?.eventId || "",
-          buyerId: notes?.buyerId || "",
+          eventId: notes.eventId,
+          buyerId: notes.buyerId,
           totalAmount: amount ? (amount / 100).toString() : "0",
           createdAt: new Date(),
         };
