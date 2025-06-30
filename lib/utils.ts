@@ -10,13 +10,11 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export const formatDateTime = (dateString: Date) => {
-  // Convert to IST (UTC+5:30)
+  // Create date object and format directly with IST timezone
   const date = new Date(dateString);
-  const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
-  const istDate = new Date(date.getTime() + (date.getTimezoneOffset() * 60 * 1000) + istOffset);
-
+  
   const options: Intl.DateTimeFormatOptions = {
-    timeZone: 'Asia/Kolkata', // Set timezone to Kolkata (IST)
+    timeZone: 'Asia/Kolkata', // This handles the timezone conversion
     weekday: 'short',
     month: 'short',
     day: 'numeric',
@@ -47,9 +45,9 @@ export const formatDateTime = (dateString: Date) => {
     year: undefined,
   };
 
-  const formattedDateTime = istDate.toLocaleString('en-IN', dateTimeOptions);
-  const formattedDate = istDate.toLocaleString('en-IN', dateOptions);
-  const formattedTime = istDate.toLocaleString('en-IN', timeOptions);
+  const formattedDateTime = date.toLocaleString('en-IN', dateTimeOptions);
+  const formattedDate = date.toLocaleString('en-IN', dateOptions);
+  const formattedTime = date.toLocaleString('en-IN', timeOptions);
 
   return {
     dateTime: formattedDateTime,
