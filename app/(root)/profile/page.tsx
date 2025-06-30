@@ -53,7 +53,7 @@ const page = async () => {
           emptyStateSubtext="Go create some now"
           collectionType="Events_Organized"
           limit={3}
-          page={eventsPage}
+          page={1}
           urlParamName="eventsPage"
           totalPages={organizedEvents?.totalPages}
         />
