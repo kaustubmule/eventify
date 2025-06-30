@@ -75,13 +75,16 @@ const Checkout = ({ event, userId }: { event: IEvent; userId: string }) => {
               body: JSON.stringify(orderData),
             });
 
-            if (!orderResponse.ok) {
-              throw new Error('Failed to confirm order');
+            const orderResult = await orderResponse.json();
+            console.log('Order confirmation response:', orderResult);
+            
+            // If there's an error in the response, throw it
+            if (!orderResponse.ok || orderResult.error) {
+              throw new Error(orderResult.error || 'Failed to confirm order');
             }
 
-            const orderResult = await orderResponse.json();
-            console.log('Order confirmed:', orderResult);
-            window.location.href = `/profile?success=true&orderId=${orderResult.order._id}`;
+            // If we get here, order was created successfully
+            window.location.href = `/profile?success=true&orderId=${orderResult.order?._id || ''}`;
           } catch (error) {
             console.error('Error confirming order:', error);
             alert('Payment was successful but there was an error creating your order. Please contact support with your payment ID: ' + response.razorpay_payment_id);
