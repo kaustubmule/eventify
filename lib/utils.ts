@@ -10,42 +10,46 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export const formatDateTime = (dateString: Date) => {
+  // Convert to IST (UTC+5:30)
+  const date = new Date(dateString);
+  const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
+  const istDate = new Date(date.getTime() + (date.getTimezoneOffset() * 60 * 1000) + istOffset);
+
+  const options: Intl.DateTimeFormatOptions = {
+    timeZone: 'Asia/Kolkata', // Set timezone to Kolkata (IST)
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
+    hour12: true,
+  };
+
   const dateTimeOptions: Intl.DateTimeFormatOptions = {
-    weekday: "short", // abbreviated weekday name (e.g., 'Mon')
-    month: "short", // abbreviated month name (e.g., 'Oct')
-    day: "numeric", // numeric day of the month (e.g., '25')
-    hour: "numeric", // numeric hour (e.g., '8')
-    minute: "numeric", // numeric minute (e.g., '30')
-    hour12: true, // use 12-hour clock (true) or 24-hour clock (false)
+    ...options,
+    hour: 'numeric',
+    minute: 'numeric',
   };
 
   const dateOptions: Intl.DateTimeFormatOptions = {
-    weekday: "short", // abbreviated weekday name (e.g., 'Mon')
-    month: "short", // abbreviated month name (e.g., 'Oct')
-    year: "numeric", // numeric year (e.g., '2023')
-    day: "numeric", // numeric day of the month (e.g., '25')
+    ...options,
+    hour: undefined,
+    minute: undefined,
+    hour12: undefined,
   };
 
   const timeOptions: Intl.DateTimeFormatOptions = {
-    hour: "numeric", // numeric hour (e.g., '8')
-    minute: "numeric", // numeric minute (e.g., '30')
-    hour12: true, // use 12-hour clock (true) or 24-hour clock (false)
+    ...options,
+    weekday: undefined,
+    month: undefined,
+    day: undefined,
+    year: undefined,
   };
 
-  const formattedDateTime: string = new Date(dateString).toLocaleString(
-    "en-US",
-    dateTimeOptions
-  );
-
-  const formattedDate: string = new Date(dateString).toLocaleString(
-    "en-US",
-    dateOptions
-  );
-
-  const formattedTime: string = new Date(dateString).toLocaleString(
-    "en-US",
-    timeOptions
-  );
+  const formattedDateTime = istDate.toLocaleString('en-IN', dateTimeOptions);
+  const formattedDate = istDate.toLocaleString('en-IN', dateOptions);
+  const formattedTime = istDate.toLocaleString('en-IN', timeOptions);
 
   return {
     dateTime: formattedDateTime,
