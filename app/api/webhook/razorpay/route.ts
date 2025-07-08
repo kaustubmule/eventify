@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { createOrder } from "@/lib/actions/order.actions";
+import { OrderItem } from "@/types";
+import { Types } from "mongoose";
 
 export async function POST(request: Request) {
   try {
@@ -107,11 +109,46 @@ export async function POST(request: Request) {
           );
         }
 
+        // Parse ticket items from notes if available, or create a default item
+        let items: OrderItem[] = [];
+        
+        try {
+          if (notes.items) {
+            items = JSON.parse(notes.items);
+          } else {
+            // If items not in notes, create a default item with the total amount
+            items = [{
+              ticketTypeId: new Types.ObjectId().toString(), // Default ticket type ID
+              ticketTypeName: 'General Admission',
+              quantity: 1,
+              price: amount ? amount / 100 : 0
+            }];
+          }
+        } catch (e) {
+          console.error('Error parsing ticket items:', e);
+          // Fallback to default item if parsing fails
+          items = [{
+            ticketTypeId: new Types.ObjectId().toString(),
+            ticketTypeName: 'General Admission',
+            quantity: 1,
+            price: amount ? amount / 100 : 0
+          }];
+        }
+
+        // Create attendee info from notes or use defaults
+        const attendeeInfo = {
+          name: notes.attendeeName || 'Event Attendee',
+          email: notes.attendeeEmail || 'no-email@example.com',
+          phone: notes.attendeePhone || ''
+        };
+
         const orderData = {
           razorpayPaymentId: id,
           eventId: notes.eventId,
           buyerId: notes.buyerId,
-          totalAmount: amount ? (amount / 100).toString() : "0",
+          items: items,
+          totalAmount: amount ? amount / 100 : 0, // Convert to number
+          attendeeInfo: attendeeInfo,
           createdAt: new Date(),
         };
         
