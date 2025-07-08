@@ -1,11 +1,27 @@
 "use client";
 
-import React, { useEffect } from "react";
-import { IEvent } from "@/lib/database/models/event.model";
+import React, { useState, useEffect } from "react";
+import { IEvent, ITicketType } from "@/lib/database/models/event.model";
 import { Button } from "../ui/button";
 import { checkoutOrder } from "@/lib/actions/order.actions";
+import { toast } from "@/lib/utils/toast";
 
 const Checkout = ({ event, userId }: { event: IEvent; userId: string }) => {
+  const [selectedTicketType, setSelectedTicketType] = useState<string>(
+    event.ticketTypes?.[0]?._id.toString() || ''
+  );
+  const [quantity, setQuantity] = useState<number>(1);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  // Get the selected ticket type details
+  const selectedTicket = event.ticketTypes?.find(
+    (ticket) => ticket._id.toString() === selectedTicketType
+  );
+
+  // Calculate total price in paise
+  const totalPrice = selectedTicket ? selectedTicket.price * quantity : 0;
+  // Convert to rupees for display
+  const displayPrice = totalPrice.toFixed(2);
   useEffect(() => {
     const query = new URLSearchParams(window.location.search);
     if (query.get("success")) {
@@ -28,13 +44,39 @@ const Checkout = ({ event, userId }: { event: IEvent; userId: string }) => {
 
   const onCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
+
+    if (!selectedTicketType) {
+      toast.error("Please select a ticket type");
+      setIsLoading(false);
+      return;
+    }
+
+    // Validate quantity
+    const availableTickets = (selectedTicket?.quantity || 0) - (selectedTicket?.sold || 0);
+    if (quantity > availableTickets) {
+      toast.error(`Only ${availableTickets} tickets available`);
+      setIsLoading(false);
+      return;
+    }
+
+    if (!selectedTicket) {
+      throw new Error("Selected ticket not found");
+    }
 
     const orderDetails = {
       eventTitle: event.title,
       eventId: event._id,
-      price: event.price,
-      isFree: event.isFree,
+      totalAmount: totalPrice, // Already in paise
       buyerId: userId,
+      items: [
+        {
+          ticketTypeId: selectedTicketType,
+          ticketTypeName: selectedTicket.name,
+          quantity: quantity,
+          price: selectedTicket.price,
+        },
+      ],
     };
 
     try {
@@ -113,9 +155,65 @@ const Checkout = ({ event, userId }: { event: IEvent; userId: string }) => {
   };
 
   return (
-    <form onSubmit={onCheckout}>
-      <Button type="submit" role="link" size="lg" className="button sm:w-fit">
-        {event.isFree ? "Get Ticket" : "Buy Ticket"}
+    <form onSubmit={onCheckout} className="w-full space-y-4">
+      {event.ticketTypes && event.ticketTypes.length > 0 && (
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700">
+            Ticket Type
+          </label>
+          <select
+            className="w-full p-2 border rounded-md"
+            value={selectedTicketType}
+            onChange={(e) => setSelectedTicketType(e.target.value)}
+          >
+            {event.ticketTypes.map((ticket) => (
+              <option key={ticket._id.toString()} value={ticket._id.toString()}>
+                {ticket.name} - ₹{(ticket.price).toFixed(2)}
+                {ticket.quantity - (ticket.sold || 0) <= 10 && 
+                  ` (${ticket.quantity - (ticket.sold || 0)} left)`}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-gray-700">
+          Quantity
+        </label>
+        <div className="flex items-center space-x-4">
+          <button
+            type="button"
+            onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
+            className="p-2 border rounded-md hover:bg-gray-100"
+            disabled={quantity <= 1}
+          >
+            -
+          </button>
+          <span>{quantity}</span>
+          <button
+            type="button"
+            onClick={() => setQuantity((prev) => prev + 1)}
+            className="p-2 border rounded-md hover:bg-gray-100"
+            disabled={
+              !selectedTicket || 
+              quantity >= (selectedTicket.quantity - (selectedTicket.sold || 0))
+            }
+          >
+            +
+          </button>
+        </div>
+      </div>
+
+
+      <Button
+        type="submit"
+        role="link"
+        size="lg"
+        className="w-full"
+        disabled={isLoading || !selectedTicketType}
+      >
+        {isLoading ? "Processing..." : "Buy Ticket"}
       </Button>
     </form>
   );

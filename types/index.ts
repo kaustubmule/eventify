@@ -15,6 +15,20 @@ export type UpdateUserParams = {
   photo: string;
 };
 
+// ====== TICKET TYPES
+export type TicketType = {
+  _id?: string;
+  name: string;
+  price: number;
+  quantity: number;
+  sold?: number;
+  reserved?: Array<{
+    email: string;
+    quantity: number;
+    code: string;
+  }>;
+};
+
 // ====== EVENT PARAMS
 export type CreateEventParams = {
   userId: string;
@@ -26,8 +40,8 @@ export type CreateEventParams = {
     startDateTime: Date;
     endDateTime: Date;
     categoryId: string;
-    price: string;
-    isFree: boolean;
+    ticketTypes: TicketType[];
+    hasMultipleTicketTypes: boolean;
     url: string;
   };
   path: string;
@@ -38,14 +52,14 @@ export type UpdateEventParams = {
   event: {
     _id: string;
     title: string;
-    imageUrl: string;
     description: string;
     location: string;
+    imageUrl: string;
     startDateTime: Date;
     endDateTime: Date;
     categoryId: string;
-    price: string;
-    isFree: boolean;
+    ticketTypes: TicketType[];
+    hasMultipleTicketTypes: boolean;
     url: string;
   };
   path: string;
@@ -59,6 +73,8 @@ export type DeleteEventParams = {
 export type GetAllEventsParams = {
   query: string;
   category: string;
+  location?: string;
+  isFree?: string;
   limit: number;
   page: number;
 };
@@ -80,13 +96,14 @@ export type Event = {
   _id: string;
   title: string;
   description: string;
-  price: string;
-  isFree: boolean;
   imageUrl: string;
   location: string;
   startDateTime: Date;
   endDateTime: Date;
   url: string;
+  isFree: boolean;
+  ticketTypes: TicketType[];
+  hasMultipleTicketTypes: boolean;
   organizer: {
     _id: string;
     firstName: string;
@@ -104,19 +121,31 @@ export type CreateCategoryParams = {
 };
 
 // ====== ORDER PARAMS
+export type OrderItem = {
+  ticketTypeId: string;
+  ticketTypeName: string;
+  quantity: number;
+  price: number;
+};
+
 export type CheckoutOrderParams = {
-  eventTitle: string;
   eventId: string;
-  price: string;
-  isFree: boolean;
   buyerId: string;
+  items: OrderItem[];
+  totalAmount: number;
 };
 
 export type CreateOrderParams = {
   razorpayPaymentId: string;
   eventId: string;
   buyerId: string;
-  totalAmount: string;
+  items: OrderItem[];
+  totalAmount: number;
+  attendeeInfo: {
+    name: string;
+    email: string;
+    phone?: string;
+  };
   createdAt: Date;
 };
 

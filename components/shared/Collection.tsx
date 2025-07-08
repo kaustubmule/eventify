@@ -2,6 +2,7 @@ import { IEvent } from "@/lib/database/models/event.model";
 import React from "react";
 import Card from "./Card";
 import Pagination from "./Pagination";
+import { EventCardProps } from "./Card";
 
 type CollectionProps = {
   data: IEvent[];
@@ -12,6 +13,49 @@ type CollectionProps = {
   totalPages?: number;
   urlParamName?: string;
   collectionType?: "Events_Organized" | "My_Tickets" | "All_Events";
+  showAdminControls?: boolean;
+};
+
+// Transform function to convert IEvent to EventCardProps
+const transformEventForCard = (event: IEvent): EventCardProps => {
+  // Helper function to safely convert ObjectId to string
+  const safeToString = (value: any): string => {
+    if (!value) return '';
+    if (typeof value === 'string') return value;
+    if (value.toString) return value.toString();
+    if (value.$oid) return value.$oid;
+    return String(value);
+  };
+
+  return {
+    _id: safeToString(event._id),
+    title: event.title || '',
+    description: event.description,
+    location: event.location,
+    imageUrl: event.imageUrl || '',
+    startDateTime: event.startDateTime,
+    price: event.ticketTypes?.[0]?.price || 0,
+    isFree: event.isFree,
+    hasMultipleTicketTypes: event.hasMultipleTicketTypes,
+    ticketTypes: event.ticketTypes?.map(ticket => ({
+      _id: safeToString(ticket._id),
+      name: ticket.name,
+      price: ticket.price,
+      quantity: ticket.quantity,
+      sold: ticket.sold,
+      reserved: ticket.reserved || []
+    })),
+    category: {
+      _id: event.category ? safeToString(event.category._id) : '',
+      name: event.category?.name || 'Uncategorized'
+    },
+    organizer: event.organizer ? {
+      _id: safeToString(event.organizer._id),
+      firstName: event.organizer.firstName || '',
+      lastName: event.organizer.lastName || ''
+    } : undefined,
+    createdAt: event.createdAt
+  };
 };
 
 const Collection = ({
@@ -22,6 +66,7 @@ const Collection = ({
   totalPages = 0,
   collectionType,
   urlParamName,
+  showAdminControls = false,
 }: CollectionProps) => {
   return (
     <>
@@ -34,12 +79,25 @@ const Collection = ({
               const hasOrderLink = collectionType === "Events_Organized";
               const hidePrice = collectionType === "My_Tickets";
 
+              // Helper function to safely convert ObjectId to string (moved here for key usage)
+              const safeToString = (value: any): string => {
+                if (!value) return '';
+                if (typeof value === 'string') return value;
+                if (value.toString) return value.toString();
+                if (value.$oid) return value.$oid;
+                return String(value);
+              };
+
+              // Transform the event data to match Card component expectations
+              const transformedEvent = transformEventForCard(event);
+
               return (
-                <li key={event._id} className="flex justify-center">
+                <li key={safeToString(event._id)} className="flex justify-center">
                   <Card
-                    event={event}
+                    event={transformedEvent}
                     hasOrderLink={hasOrderLink}
                     hidePrice={hidePrice}
+                    showAdminControls={collectionType === "Events_Organized" && showAdminControls}
                   />
                 </li>
               );

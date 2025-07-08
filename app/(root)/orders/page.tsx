@@ -2,7 +2,7 @@ import Search  from '@/components/shared/Search'
 import { getOrdersByEvent } from '@/lib/actions/order.actions'
 import { formatDateTime, formatPrice } from '@/lib/utils'
 import { SearchParamProps } from '@/types'
-import { IOrderItem } from '@/lib/database/models/order.model'
+import { IOrder } from '@/lib/database/models/order.model'
 
 const Orders = async ({ searchParams }: SearchParamProps) => {
   const eventId = (searchParams?.eventId as string) || ''
@@ -41,19 +41,25 @@ const Orders = async ({ searchParams }: SearchParamProps) => {
             ) : (
               <>
                 {orders &&
-                  orders.map((row: IOrderItem) => (
+                  orders.map((order: IOrder) => (
                     <tr
-                      key={row._id}
+                      key={order._id}
                       className="p-regular-14 lg:p-regular-16 border-b "
                       style={{ boxSizing: 'border-box' }}>
-                      <td className="min-w-[250px] py-4 text-primary-500">{row._id}</td>
-                      <td className="min-w-[200px] flex-1 py-4 pr-4">{row.eventTitle}</td>
-                      <td className="min-w-[150px] py-4">{row.buyer}</td>
+                      <td className="min-w-[250px] py-4 text-primary-500">{order._id}</td>
+                      <td className="min-w-[200px] flex-1 py-4 pr-4">
+                        {order.event?.title || 'Event not found'}
+                      </td>
+                      <td className="min-w-[150px] py-4">
+                        {typeof order.buyer === 'string' 
+                          ? order.buyer 
+                          : `${order.buyer?.firstName || ''} ${order.buyer?.lastName || ''}`.trim() || 'Unknown Buyer'}
+                      </td>
                       <td className="min-w-[100px] py-4">
-                        {formatDateTime(row.createdAt).dateTime}
+                        {formatDateTime(order.createdAt).dateTime}
                       </td>
                       <td className="min-w-[100px] py-4 text-right">
-                        {formatPrice(row.totalAmount)}
+                        {formatPrice(order.totalAmount.toString())}
                       </td>
                     </tr>
                   ))}

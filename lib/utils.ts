@@ -67,8 +67,6 @@ export const formatPrice = (price: string) => {
     maximumFractionDigits: 0,
   }).format(amount);
   
-  return formattedPrice.replace('₹', '₹ '); // Add space after Rupee symbol for better readability
-
   return formattedPrice;
 };
 
@@ -105,7 +103,35 @@ export function removeKeysFromQuery({
   );
 }
 
-export const handleError = (error: unknown) => {
-  console.error(error);
-  throw new Error(typeof error === "string" ? error : JSON.stringify(error));
+/**
+ * Handles errors by logging them and throwing a consistent error format
+ * @param error - The error to handle
+ * @param context - Additional context about where the error occurred
+ */
+export const handleError = (error: unknown, context: string = '') => {
+  console.error(`[Error${context ? ` in ${context}` : ''}]`, error);
+  
+  // Handle different error types
+  if (error instanceof Error) {
+    // For Error objects, include stack trace in development
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Stack trace:', error.stack);
+    }
+    throw error; // Re-throw the original error to preserve stack trace
+  }
+  
+  // Handle string errors
+  if (typeof error === 'string') {
+    throw new Error(error);
+  }
+  
+  // Handle objects with a message property
+  if (error && typeof error === 'object' && 'message' in error) {
+    throw new Error(String(error.message));
+  }
+  
+  // Handle any other error type
+  const errorMessage = 'An unknown error occurred' + (context ? ` in ${context}` : '');
+  console.error('Unhandled error type:', typeof error, error);
+  throw new Error(errorMessage);
 };
